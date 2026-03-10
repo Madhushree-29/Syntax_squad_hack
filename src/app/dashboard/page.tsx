@@ -2,373 +2,483 @@
 
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useOnboardingStore } from "@/lib/store";
 import {
-  Sparkles,
+  Home,
+  Map,
+  Library,
+  Settings,
+  GraduationCap,
   Target,
+  Trophy,
   TrendingUp,
-  Bell,
-  Clock,
-  CheckCircle2,
-  Circle,
-  Flame,
-  Zap,
-  Users,
+  Crosshair,
+  BarChart,
+  Award,
+  CheckSquare,
   ChevronRight,
-  Play,
-  ExternalLink,
-  BarChart3,
-  BookOpen,
+  Bell,
+  Search,
+  Loader2
 } from "lucide-react";
-import { useState } from "react";
 
-/* ── Animated Gauge ── */
-function DashGauge({ score, label }: { score: number; label: string }) {
-  const radius = 60;
+/* ── Animated Central Gauge ── */
+function CentralRing({ score }: { score: number }) {
+  const radius = 100;
   const circumference = 2 * Math.PI * radius;
   const offset = circumference - (score / 100) * circumference;
 
-  const getColor = (s: number) => {
-    if (s < 40) return "var(--neon-pink)";
-    if (s < 70) return "var(--neon-orange)";
-    return "var(--neon-green)";
-  };
-
   return (
-    <div className="flex flex-col items-center gap-2">
-      <div className="relative w-36 h-36 flex items-center justify-center">
-        <svg width="144" height="144" className="transform -rotate-90">
-          <circle cx="72" cy="72" r={radius} fill="none" stroke="rgba(255,255,255,0.04)" strokeWidth="10" />
+    <div className="flex flex-col items-center justify-center h-full">
+      <div className="relative w-64 h-64 flex items-center justify-center">
+        <svg width="256" height="256" className="transform -rotate-90">
+          <circle
+            cx="128" cy="128" r={radius}
+            fill="none"
+            stroke="#FFF9E5"
+            strokeWidth="16"
+          />
           <motion.circle
-            cx="72" cy="72" r={radius} fill="none" stroke={getColor(score)} strokeWidth="10"
-            strokeLinecap="round" strokeDasharray={circumference}
+            cx="128" cy="128" r={radius}
+            fill="none"
+            stroke="#FDB813"
+            strokeWidth="16"
+            strokeLinecap="round"
+            strokeDasharray={circumference}
             initial={{ strokeDashoffset: circumference }}
             animate={{ strokeDashoffset: offset }}
             transition={{ duration: 1.5, ease: [0.22, 1, 0.36, 1], delay: 0.3 }}
-            style={{ filter: `drop-shadow(0 0 6px ${getColor(score)})` }}
           />
         </svg>
-        <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <motion.span
-            className="text-3xl font-black"
-            style={{ color: getColor(score) }}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.8 }}
           >
-            {score}%
-          </motion.span>
+            <span className="block text-5xl font-black text-[#333333] mb-1">
+              {score}%
+            </span>
+            <span className="text-sm font-semibold text-gray-500 uppercase tracking-wider">
+              Profile<br />Completion
+            </span>
+          </motion.div>
         </div>
       </div>
-      <span className="text-xs font-semibold" style={{ color: "var(--text-muted)" }}>{label}</span>
+      <motion.p
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 1 }}
+        className="mt-6 text-center text-[#333333] font-medium"
+      >
+        You are almost ready for your next big step!
+      </motion.p>
+    </div>
+  );
+}
+
+/* ── Reusable Bento Card ── */
+function BentoCard({
+  title,
+  icon: Icon,
+  className,
+  children,
+  delay = 0
+}: {
+  title: string;
+  icon: React.ElementType;
+  className?: string;
+  children?: React.ReactNode;
+  delay?: number;
+}) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: delay * 0.1, duration: 0.5 }}
+      className={`bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col ${className}`}
+    >
+      <div className="flex items-center gap-3 mb-4">
+        <div className="w-10 h-10 rounded-full bg-[#FFF9E5] flex items-center justify-center text-[#FDB813]">
+          <Icon size={20} strokeWidth={2.5} />
+        </div>
+        <h3 className="font-bold text-[#333333] text-lg">{title}</h3>
+      </div>
+      <div className="flex-1 w-full flex flex-col justify-center">
+        {children}
+      </div>
+    </motion.div>
+  );
+}
+
+/* ── Small Circular Progress ── */
+function MiniProgress({ value, label }: { value: number; label: string }) {
+  return (
+    <div className="flex items-center justify-between w-full mb-3">
+      <span className="text-sm font-medium text-gray-600 truncate max-w-[100px]" title={label}>{label}</span>
+      <div className="flex items-center gap-3 w-32 shrink-0">
+        <div className="h-2 flex-1 bg-gray-100 rounded-full overflow-hidden">
+          <motion.div
+            initial={{ width: 0 }}
+            animate={{ width: `${value}%` }}
+            transition={{ duration: 1, delay: 0.5 }}
+            className="h-full bg-[#FDB813]"
+          />
+        </div>
+        <span className="text-xs font-bold text-[#333333] w-8 text-right">{value}%</span>
+      </div>
     </div>
   );
 }
 
 /* ── Main Dashboard ── */
 export default function DashboardPage() {
-  const [activeTab, setActiveTab] = useState<"roadmap" | "notifications">("roadmap");
+  const router = useRouter();
+  const { analysisResult, targetJobTitle, userStatus, vibeCheck } = useOnboardingStore();
+  const [isMounted, setIsMounted] = useState(false);
 
-  // Demo data
-  type ItemStatus = "completed" | "in-progress" | "not-started";
-  const roadmapItems: { id: number; skill: string; status: ItemStatus; hours: number; progress: number }[] = [
-    { id: 1, skill: "Docker & Containerization", status: "completed", hours: 6, progress: 100 },
-    { id: 2, skill: "Git & Version Control", status: "completed", hours: 3, progress: 100 },
-    { id: 3, skill: "REST API Design", status: "in-progress", hours: 5, progress: 60 },
-    { id: 4, skill: "AWS Cloud Fundamentals", status: "not-started", hours: 8, progress: 0 },
-    { id: 5, skill: "Node.js Backend Dev", status: "not-started", hours: 10, progress: 0 },
-  ];
+  useEffect(() => {
+    setIsMounted(true);
 
-  const statusConfigMap: Record<ItemStatus, { icon: typeof CheckCircle2; color: string; label: string }> = {
-    completed: { icon: CheckCircle2, color: "var(--neon-green)", label: "Done" },
-    "in-progress": { icon: TrendingUp, color: "var(--neon-cyan)", label: "In Progress" },
-    "not-started": { icon: Circle, color: "var(--text-muted)", label: "Not Started" },
-  };
+    // Fallback Mock Data so the Dashboard always renders its beautiful UI
+    // even if the user hasn't set the GEMINI_API_KEY yet.
+    if (!analysisResult) {
+      useOnboardingStore.setState({
+        userStatus: "DEGREE_STUDENT",
+        targetJobTitle: "Junior Software Engineer",
+        vibeCheck: { weeklyHours: 15, learningStyle: "MIXED", biggestBottleneck: "No direction", budgetConstraint: true },
+        analysisResult: {
+          coveragePercent: 75,
+          hireabilityScore: 68,
+          coveredSkills: [
+            { skill: "React.js", syllabusDepth: "", jobRelevance: "required" },
+            { skill: "JavaScript", syllabusDepth: "", jobRelevance: "required" },
+            { skill: "HTML/CSS", syllabusDepth: "", jobRelevance: "required" },
+            { skill: "Node.js", syllabusDepth: "", jobRelevance: "preferred" },
+            { skill: "Git/GitHub", syllabusDepth: "", jobRelevance: "required" }
+          ],
+          partialSkills: [
+            { skill: "TypeScript", syllabusDepth: "", jobRelevance: "preferred", gap: "" },
+            { skill: "PostgreSQL", syllabusDepth: "", jobRelevance: "required", gap: "" }
+          ],
+          missingSkills: [
+            { skill: "System Design", jobRelevance: "preferred", priority: 1, estimatedHours: 10, weekendPlan: "" },
+            { skill: "AWS/Cloud", jobRelevance: "preferred", priority: 2, estimatedHours: 15, weekendPlan: "" },
+            { skill: "CI/CD", jobRelevance: "nice-to-have", priority: 3, estimatedHours: 5, weekendPlan: "" }
+          ],
+          weekendRoadmap: [
+            {
+              weekend: 1, focus: "System Design Basics", totalHours: 10, tasks: [
+                { task: "Understand Client-Server Architecture", resource: "", type: "article", duration: "2h" },
+                { task: "Learn about Load Balancing", resource: "", type: "youtube", duration: "3h" }
+              ]
+            },
+            {
+              weekend: 2, focus: "Cloud Foundations", totalHours: 15, tasks: [
+                { task: "Deploy an app on AWS EC2", resource: "", type: "project", duration: "5h" },
+                { task: "Set up S3 Object Storage", resource: "", type: "project", duration: "3h" }
+              ]
+            }
+          ],
+          rawSummary: "You have a strong foundation in modern frontend web development, but you need to bridge the gap in backend architecture and deployment to reach full-stack readiness. Your immediate focus should be understanding cloud architecture and system design principles."
+        }
+      });
+    }
+  }, [analysisResult, router]);
 
-  const notifications = [
-    {
-      id: 1,
-      type: "market_alert",
-      title: "New internship at Stripe!",
-      body: "Requires React + Node.js. You're 65% ready — 2hr course to close the gap.",
-      time: "2 hours ago",
-      icon: Zap,
-      color: "var(--neon-cyan)",
-    },
-    {
-      id: 2,
-      type: "peer_match",
-      title: "Peer match found!",
-      body: "Aisha K. is also learning REST APIs this weekend. Connect?",
-      time: "5 hours ago",
-      icon: Users,
-      color: "var(--neon-purple)",
-    },
-    {
-      id: 3,
-      type: "streak",
-      title: "🔥 3-day streak!",
-      body: "You've been consistent. Keep it up — Docker is almost done.",
-      time: "1 day ago",
-      icon: Flame,
-      color: "var(--neon-orange)",
-    },
-  ];
+  // Loading state while mounting
+  if (!isMounted || !analysisResult) {
+    return (
+      <div className="min-h-screen bg-amber-50 flex flex-col items-center justify-center">
+        <Loader2 className="animate-spin text-[#FDB813] mb-4" size={48} />
+        <span className="font-bold text-[#333333]">Loading Dashboard...</span>
+      </div>
+    );
+  }
 
-  const totalHours = roadmapItems.reduce((a, b) => a + b.hours, 0);
-  const completedHours = roadmapItems
-    .filter((i) => i.status === "completed")
-    .reduce((a, b) => a + b.hours, 0);
+  const coveredCount = analysisResult.coveredSkills.length;
+  const missingCount = analysisResult.missingSkills.length;
+  const partialCount = analysisResult.partialSkills.length;
+  const totalSkills = coveredCount + missingCount + partialCount;
+
+  // Aggregate tasks from the weekend plan
+  const upcomingTasks = analysisResult.weekendRoadmap.flatMap(w => w.tasks).slice(0, 4);
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
-      {/* Orbs */}
-      <div className="orb orb-cyan" style={{ width: 400, height: 400, top: -100, right: -100 }} />
-      <div className="orb orb-purple" style={{ width: 300, height: 300, bottom: 50, left: -80 }} />
-
-      {/* NAV */}
-      <nav className="relative z-10 flex items-center justify-between px-6 md:px-16 py-5">
-        <Link href="/" className="flex items-center gap-2">
-          <div
-            className="w-8 h-8 rounded-lg flex items-center justify-center"
-            style={{ background: "var(--gradient-button)", boxShadow: "var(--shadow-neon-cyan)" }}
-          >
-            <Sparkles size={18} color="#050510" strokeWidth={2.5} />
+    <div className="min-h-screen bg-amber-50 flex font-sans text-[#333333]">
+      {/* ── SIDEBAR ── */}
+      <aside className="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col py-8 px-6 fixed h-full z-20">
+        <div className="flex items-center gap-3 mb-12">
+          <div className="w-10 h-10 rounded-xl bg-[#FDB813] flex items-center justify-center shadow-md">
+            <span className="font-extrabold text-white text-xl">N</span>
           </div>
-          <span className="text-lg font-bold neon-text">Nexus</span>
-        </Link>
-
-        <div className="flex items-center gap-4">
-          <Link
-            href="/onboarding"
-            className="text-sm font-medium transition-colors hover:text-[var(--neon-cyan)]"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            + New Check
-          </Link>
-          <div
-            className="w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold"
-            style={{
-              background: "var(--gradient-button)",
-              color: "#050510",
-            }}
-          >
-            PM
-          </div>
+          <span className="text-2xl font-black tracking-tight text-[#333333]">Nexus</span>
         </div>
-      </nav>
 
-      <main className="relative z-10 px-6 md:px-16 pb-24 max-w-6xl mx-auto">
-        {/* ── HEADER ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-10 pt-4"
-        >
-          <h1 className="text-3xl font-bold mb-1">
-            Your <span className="neon-text">Pilot Dashboard</span>
-          </h1>
-          <p style={{ color: "var(--text-secondary)" }}>
-            Target: <strong style={{ color: "var(--text-primary)" }}>Junior Backend Engineer — Amazon</strong>
-          </p>
-        </motion.div>
-
-        {/* ── TOP STATS ── */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
-          className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10"
-        >
-          {/* Hireability Gauge */}
-          <div className="glass-card p-6 flex items-center justify-center col-span-2 lg:col-span-1 row-span-2">
-            <DashGauge score={52} label="Hireability Score" />
-          </div>
-
-          {/* Stats Cards */}
+        <nav className="flex-1 space-y-2">
           {[
-            {
-              icon: CheckCircle2,
-              label: "Skills Closed",
-              value: "2 / 5",
-              color: "var(--neon-green)",
-            },
-            {
-              icon: Clock,
-              label: "Hours Invested",
-              value: `${completedHours}h / ${totalHours}h`,
-              color: "var(--neon-cyan)",
-            },
-            {
-              icon: Flame,
-              label: "Current Streak",
-              value: "3 days",
-              color: "var(--neon-orange)",
-            },
-            {
-              icon: BarChart3,
-              label: "Weekly Progress",
-              value: "+12%",
-              color: "var(--neon-purple)",
-            },
-          ].map((stat) => (
-            <div key={stat.label} className="glass-card p-5 flex items-start gap-4">
-              <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background: `${stat.color}15`, border: `1px solid ${stat.color}30` }}
-              >
-                <stat.icon size={20} color={stat.color} />
-              </div>
-              <div>
-                <div className="text-2xl font-bold" style={{ color: stat.color }}>
-                  {stat.value}
-                </div>
-                <div className="text-xs mt-0.5" style={{ color: "var(--text-muted)" }}>
-                  {stat.label}
-                </div>
-              </div>
-            </div>
-          ))}
-        </motion.div>
-
-        {/* ── TABS ── */}
-        <div className="flex gap-1 mb-6">
-          {[
-            { key: "roadmap" as const, label: "Active Roadmap", icon: BookOpen },
-            { key: "notifications" as const, label: "Notifications", icon: Bell, badge: 3 },
-          ].map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key)}
-              className="flex items-center gap-2 px-5 py-2.5 rounded-full text-sm font-medium transition-all cursor-pointer"
-              style={{
-                background: activeTab === tab.key ? "rgba(0,245,255,0.1)" : "transparent",
-                borderColor: activeTab === tab.key ? "var(--neon-cyan)" : "transparent",
-                color: activeTab === tab.key ? "var(--neon-cyan)" : "var(--text-muted)",
-                border: `1px solid ${activeTab === tab.key ? "rgba(0,245,255,0.2)" : "transparent"}`,
-              }}
+            { icon: Home, label: "Home", active: true },
+            { icon: Map, label: "My Path", active: false, href: "/results" },
+            { icon: Library, label: "Resources", active: false },
+            { icon: Settings, label: "Settings", active: false },
+          ].map((item, i) => (
+            <Link
+              key={i}
+              href={item.href || "#"}
+              className={`flex items-center gap-4 px-4 py-3 rounded-xl transition-colors font-medium ${item.active
+                ? "bg-[#FFF9E5] text-[#FDB813]"
+                : "text-gray-500 hover:bg-gray-50 hover:text-[#333333]"
+                }`}
             >
-              <tab.icon size={16} />
-              {tab.label}
-              {tab.badge && (
-                <span
-                  className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold"
-                  style={{
-                    background: "var(--neon-pink)",
-                    color: "#fff",
-                  }}
-                >
-                  {tab.badge}
-                </span>
-              )}
-            </button>
+              <item.icon size={20} />
+              {item.label}
+            </Link>
           ))}
+        </nav>
+
+        <div className="mt-auto">
+          <div className="bg-[#FFF9E5] p-4 rounded-xl relative overflow-hidden">
+            <div className="absolute -right-4 -bottom-4 w-20 h-20 bg-[#FDB813] opacity-10 rounded-full blur-xl"></div>
+            <h4 className="font-bold text-[#333333] mb-1">Need help?</h4>
+            <p className="text-sm text-gray-600 mb-3">Talk to an advisor today.</p>
+            <button className="w-full bg-[#FDB813] text-white font-bold py-2 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+              Book Call
+            </button>
+          </div>
         </div>
+      </aside>
 
-        {/* ── ROADMAP TAB ── */}
-        {activeTab === "roadmap" && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex flex-col gap-3"
-          >
-            {roadmapItems.map((item, i) => {
-              const statusConfig = statusConfigMap[item.status];
+      {/* ── MAIN CONTENT ── */}
+      <main className="flex-1 md:ml-64 relative">
+        {/* Top Navbar */}
+        <header className="h-20 px-8 flex items-center justify-between sticky top-0 z-10 bg-amber-50/80 backdrop-blur-md">
+          <div>
+            <h1 className="text-2xl font-black text-[#333333]">Career Planning</h1>
+            <p className="text-sm font-medium text-gray-500">Welcome back. Let's map your future.</p>
+          </div>
+          <div className="flex items-center gap-4">
+            <button className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-400 border border-gray-200 hover:text-[#FDB813] transition-colors">
+              <Search size={18} />
+            </button>
+            <button className="w-10 h-10 rounded-full bg-white flex items-center justify-center text-gray-400 border border-gray-200 hover:text-[#FDB813] transition-colors relative">
+              <Bell size={18} />
+              <span className="absolute top-2 right-2.5 w-2 h-2 rounded-full bg-[#FDB813] border-2 border-white"></span>
+            </button>
+            <div className="w-10 h-10 rounded-full bg-[#333333] text-white flex items-center justify-center font-bold shadow-md cursor-pointer">
+              ME
+            </div>
+          </div>
+        </header>
 
-              return (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, x: -15 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: i * 0.08 }}
-                  className="glass-card p-5 flex items-center gap-5 group cursor-pointer"
-                >
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                    style={{
-                      background: `${statusConfig.color}15`,
-                      border: `1px solid ${statusConfig.color}30`,
-                    }}
-                  >
-                    <statusConfig.icon size={20} color={statusConfig.color} />
+        {/* Dashboard Grid Container */}
+        <div className="p-8 max-w-[1400px] mx-auto min-h-[calc(100vh-5rem)] pb-24">
+
+          <div className="grid grid-cols-1 md:grid-cols-4 md:grid-rows-3 gap-6 h-full auto-rows-[minmax(250px,auto)]">
+
+            {/* R1C1: Education / Profile Status */}
+            <BentoCard title="Current Status" icon={GraduationCap} delay={1}>
+              <div className="space-y-4 w-full">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center font-bold text-gray-500">
+                    {userStatus === "DEGREE_STUDENT" ? "SU" : userStatus === "WORKING_PROFESSIONAL" ? "WP" : "ST"}
                   </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-1">
-                      <span className="font-semibold text-sm">{item.skill}</span>
-                      <span
-                        className="text-[10px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-full"
-                        style={{
-                          background: `${statusConfig.color}15`,
-                          color: statusConfig.color,
-                        }}
-                      >
-                        {statusConfig.label}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="flex-1 h-1.5 rounded-full" style={{ background: "rgba(255,255,255,0.05)" }}>
-                        <motion.div
-                          className="h-full rounded-full"
-                          style={{ background: statusConfig.color }}
-                          initial={{ width: 0 }}
-                          animate={{ width: `${item.progress}%` }}
-                          transition={{ duration: 1, delay: 0.3 + i * 0.1 }}
-                        />
-                      </div>
-                      <span className="text-xs shrink-0" style={{ color: "var(--text-muted)" }}>
-                        {item.hours}h est.
-                      </span>
-                    </div>
+                  <div>
+                    <h4 className="font-bold text-[#333333] capitalize">
+                      {userStatus?.replace("_", " ").toLowerCase() || "Student"}
+                    </h4>
+                    <p className="text-xs text-gray-500">{vibeCheck?.weeklyHours}h / week avail.</p>
                   </div>
+                </div>
+                <Link href="/results" className="block bg-[#FFF9E5] border border-[#FDB813]/20 rounded-lg p-3 cursor-pointer hover:bg-[#FDB813] hover:text-white transition-colors group">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-[#FDB813] group-hover:text-white transition-colors">View Final Roadmap</span>
+                    <ChevronRight size={16} className="text-[#FDB813] group-hover:text-white transition-colors" />
+                  </div>
+                </Link>
+              </div>
+            </BentoCard>
 
-                  <ChevronRight
-                    size={18}
-                    className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
-                    style={{ color: "var(--text-muted)" }}
+            {/* R1C2: Feedback / AI Summary */}
+            <BentoCard title="AI Feedback" icon={Target} delay={2}>
+              <div className="flex flex-col items-center justify-center h-full relative px-2">
+                <span className="text-4xl font-serif text-[#FDB813] opacity-20 absolute top-0 left-0 leading-none">"</span>
+                <p className="text-sm font-medium italic text-gray-600 line-clamp-4 leading-relaxed z-10 w-full">
+                  {analysisResult.rawSummary}
+                </p>
+                <div className="mt-4 px-4 py-1.5 rounded-full bg-gray-100 text-[10px] font-bold text-gray-500 uppercase tracking-widest self-center">
+                  Reality Check
+                </div>
+              </div>
+            </BentoCard>
+
+            {/* CENTRAL HERO (R1C2-R2C3 span) */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6 }}
+              className="bg-white rounded-3xl p-8 shadow-sm border border-gray-100 md:col-span-2 md:row-span-2 flex flex-col items-center justify-center relative overflow-hidden"
+            >
+              <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-transparent via-[#FDB813] to-transparent opacity-50"></div>
+              <CentralRing score={analysisResult.hireabilityScore} />
+            </motion.div>
+
+            {/* R1C4: Success (Stats) */}
+            <BentoCard title="Success" icon={Trophy} delay={3}>
+              <div className="grid grid-cols-2 gap-4 w-full text-center">
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <div className="text-3xl font-black text-[#FDB813] mb-1">{coveredCount}</div>
+                  <div className="text-[10px] font-bold text-gray-400 uppercase flex items-center justify-center gap-1">Covered <Award size={10} /></div>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-4">
+                  <div className="text-3xl font-black text-red-400 mb-1">{missingCount}</div>
+                  <div className="text-[10px] font-bold text-gray-400 uppercase">Missing</div>
+                </div>
+                <div className="bg-gray-50 rounded-xl p-4 col-span-2 flex items-center justify-between">
+                  <div className="text-left">
+                    <div className="text-[10px] font-bold text-gray-400 uppercase">Syllabus Coverage</div>
+                    <div className="text-lg font-black text-[#333333]">{analysisResult.coveragePercent}%</div>
+                  </div>
+                  <div className="w-10 h-10 rounded-full bg-[#FFF9E5] text-[#FDB813] flex items-center justify-center">
+                    🔥
+                  </div>
+                </div>
+              </div>
+            </BentoCard>
+
+            {/* R2C1: Define Goals (Missing Skills) */}
+            <BentoCard title="Goals & Gaps" icon={Crosshair} delay={4}>
+              <div className="space-y-4 max-h-48 overflow-y-auto pr-1">
+                {analysisResult.missingSkills.slice(0, 4).map((goal, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className={`w-2 h-2 rounded-full ${i === 0 ? 'bg-[#FDB813]' : 'bg-gray-300'}`}></div>
+                    <div className="flex-1 w-full min-w-0">
+                      <h4 className={`text-sm font-semibold truncate ${i === 0 ? 'text-[#333333]' : 'text-gray-500'}`} title={goal.skill}>{goal.skill}</h4>
+                    </div>
+                    <span className="text-[10px] font-bold px-2 py-1 bg-gray-50 text-gray-400 rounded-md uppercase shrink-0">
+                      {goal.estimatedHours}h
+                    </span>
+                  </div>
+                ))}
+                {missingCount === 0 && <p className="text-sm text-gray-400">You're fully equipped!</p>}
+              </div>
+            </BentoCard>
+
+            {/* R2C4: Career Ladder (Target Role) */}
+            <BentoCard title="Career Target" icon={TrendingUp} delay={5} className="md:col-start-4">
+              <div className="relative pl-4 border-l-2 border-gray-100 flex flex-col gap-6 py-2">
+                <div className="relative">
+                  <div className="absolute -left-[21px] top-1 w-3 h-3 rounded-full border-2 bg-[#FDB813] border-[#FDB813]"></div>
+                  <h4 className="text-sm font-bold text-[#FDB813]">
+                    {targetJobTitle || "Your Goal Role"}
+                  </h4>
+                  <p className="text-xs text-gray-400 font-medium mt-0.5">Target Job</p>
+                </div>
+                <div className="relative opacity-50">
+                  <div className="absolute -left-[21px] top-1 w-3 h-3 rounded-full border-2 bg-white border-gray-300"></div>
+                  <h4 className="text-sm font-bold text-gray-400">
+                    Current Hireability
+                  </h4>
+                  <p className="text-xs text-gray-400 font-medium mt-0.5">{analysisResult.hireabilityScore}% Ready</p>
+                </div>
+              </div>
+            </BentoCard>
+
+            {/* R3C1: Qualification */}
+            <BentoCard title="Qualification" icon={Award} delay={6}>
+              <div className="w-full h-full flex flex-col justify-center gap-2">
+                {analysisResult.coveredSkills.slice(0, 4).map((skill, i) => (
+                  <MiniProgress
+                    key={i}
+                    value={skill.jobRelevance === 'required' ? 100 : skill.jobRelevance === 'preferred' ? 80 : 50}
+                    label={skill.skill}
                   />
-                </motion.div>
-              );
-            })}
-          </motion.div>
-        )}
+                ))}
+                {coveredCount === 0 && <p className="text-sm text-gray-400">No covered skills from syllabus.</p>}
+              </div>
+            </BentoCard>
 
-        {/* ── NOTIFICATIONS TAB ── */}
-        {activeTab === "notifications" && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex flex-col gap-3"
-          >
-            {notifications.map((notif, i) => (
-              <motion.div
-                key={notif.id}
-                initial={{ opacity: 0, x: -15 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.08 }}
-                className="glass-card p-5 flex items-start gap-4 cursor-pointer group"
-              >
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
-                  style={{
-                    background: `${notif.color}15`,
-                    border: `1px solid ${notif.color}30`,
-                  }}
-                >
-                  <notif.icon size={20} color={notif.color} />
+            {/* R3C2: Strengths & Weaknesses (Split Bar) */}
+            <BentoCard title="Skill Relevancy" icon={BarChart} delay={7} className="md:col-span-2">
+              <div className="flex items-center h-full gap-8">
+
+                {/* Positives */}
+                <div className="flex-1 space-y-4">
+                  <div>
+                    <div className="flex justify-between text-xs font-bold mb-1">
+                      <span className="text-[#333333]">Syllabus Relevance</span>
+                      <span className="text-[#FDB813]">{analysisResult.coveragePercent}%</span>
+                    </div>
+                    <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-[#FDB813] rounded-full" style={{ width: `${analysisResult.coveragePercent}%` }}></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-xs font-bold mb-1">
+                      <span className="text-[#333333]">Required Found</span>
+                      <span className="text-[#FDB813]">
+                        {totalSkills > 0 ? Math.round((coveredCount / totalSkills) * 100) : 0}%
+                      </span>
+                    </div>
+                    <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
+                      <div className="h-full bg-[#FDB813] rounded-full" style={{ width: `${totalSkills > 0 ? (coveredCount / totalSkills) * 100 : 0}%` }}></div>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <div className="font-semibold text-sm mb-1">{notif.title}</div>
-                  <p className="text-xs leading-relaxed" style={{ color: "var(--text-secondary)" }}>
-                    {notif.body}
-                  </p>
-                  <span className="text-[10px] mt-2 inline-block" style={{ color: "var(--text-muted)" }}>
-                    {notif.time}
-                  </span>
+
+                {/* Divider */}
+                <div className="w-[1px] h-32 bg-gray-100 hidden md:block"></div>
+
+                {/* Negatives */}
+                <div className="flex-1 space-y-4">
+                  <div>
+                    <div className="flex justify-between text-xs font-bold mb-1">
+                      <span className="text-gray-500">Missing Gap</span>
+                      <span className="text-gray-400">
+                        {totalSkills > 0 ? Math.round((missingCount / totalSkills) * 100) : 0}%
+                      </span>
+                    </div>
+                    <div className="h-1.5 w-full bg-gray-50 rounded-full overflow-hidden">
+                      <div className="h-full bg-red-300 rounded-full" style={{ width: `${totalSkills > 0 ? (missingCount / totalSkills) * 100 : 0}%` }}></div>
+                    </div>
+                  </div>
+                  <div>
+                    <div className="flex justify-between text-xs font-bold mb-1">
+                      <span className="text-gray-500">Partial Overlap</span>
+                      <span className="text-gray-400">
+                        {totalSkills > 0 ? Math.round((partialCount / totalSkills) * 100) : 0}%
+                      </span>
+                    </div>
+                    <div className="h-1.5 w-full bg-gray-50 rounded-full overflow-hidden">
+                      <div className="h-full bg-gray-300 rounded-full" style={{ width: `${totalSkills > 0 ? (partialCount / totalSkills) * 100 : 0}%` }}></div>
+                    </div>
+                  </div>
                 </div>
-              </motion.div>
-            ))}
-          </motion.div>
-        )}
+
+              </div>
+            </BentoCard>
+
+            {/* R3C4: Checklist */}
+            <BentoCard title="Checklist Tasks" icon={CheckSquare} delay={8}>
+              <div className="space-y-3 max-h-48 overflow-y-auto pr-1">
+                {upcomingTasks.length > 0 ? upcomingTasks.map((task, i) => (
+                  <label key={i} className="flex items-start gap-3 cursor-pointer group">
+                    <div className={`mt-0.5 w-5 h-5 rounded flex items-center justify-center border transition-colors bg-white border-gray-300 text-transparent group-hover:border-[#FDB813] shrink-0`}>
+                      <CheckSquare size={14} className="opacity-0" />
+                    </div>
+                    <span className="text-sm font-medium text-[#333333] line-clamp-2" title={task.task}>
+                      {task.task}
+                    </span>
+                  </label>
+                )) : (
+                  <p className="text-sm text-gray-500">No scheduled tasks yet.</p>
+                )}
+              </div>
+            </BentoCard>
+
+          </div>
+        </div>
       </main>
     </div>
   );
