@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Nexus — Reality Check | Bridge Your Hireability Gap",
+  title: "NODENEXUS — Reality Check | Bridge Your Hireability Gap",
   description:
     "AI-powered career gap analysis. Upload your syllabus, paste your dream job, and get a brutally honest roadmap to close the gap — with exact resources.",
   keywords: [
@@ -32,11 +32,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-[#050510] text-[#f0f0f5]`}
       >
-        <div className="grid-bg" aria-hidden="true" />
         {children}
       </body>
     </html>

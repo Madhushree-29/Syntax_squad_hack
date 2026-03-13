@@ -260,12 +260,11 @@ function StepTargetJob() {
     <div className="flex flex-col items-center gap-8 w-full max-w-2xl mx-auto">
       <div className="text-center">
         <h2 className="text-3xl font-bold mb-2">
-          What&apos;s your{" "}
-          <span className="neon-text">dream job?</span>
+          Tell us your{" "}
+          <span className="neon-text">goals & skills</span>
         </h2>
         <p style={{ color: "var(--text-secondary)" }}>
-          Paste the exact job description. The more specific, the sharper our
-          analysis.
+          List the skills you have and your main field of interest.
         </p>
       </div>
 
@@ -276,12 +275,12 @@ function StepTargetJob() {
           style={{ color: "var(--text-muted)" }}
         >
           <Target size={14} />
-          Job Title
+          Skills you have
         </label>
         <input
           value={targetJobTitle}
           onChange={(e) => setTargetJobTitle(e.target.value)}
-          placeholder='e.g., "Junior Backend Engineer — Amazon"'
+          placeholder="e.g., Python, React, SQL"
           className="w-full glass-card p-4 text-sm focus:outline-none transition-all"
           style={{
             background: "rgba(10,10,26,0.7)",
@@ -301,12 +300,12 @@ function StepTargetJob() {
           style={{ color: "var(--text-muted)" }}
         >
           <FileText size={14} />
-          Full Job Description
+          Field of Interest
         </label>
         <textarea
           value={targetJobDescription}
           onChange={(e) => setTargetJobDescription(e.target.value)}
-          placeholder={`Paste the full JD here...\n\ne.g.,\nWe're looking for a Junior Backend Engineer to join our team.\nRequirements:\n- Proficiency in Node.js or Python\n- Experience with Docker and containerization\n- AWS fundamentals (EC2, S3, Lambda)\n- REST API design and implementation\n- SQL and NoSQL databases\n...`}
+          placeholder="e.g., Artificial Intelligence, Web Development, Data Science..."
           className="w-full h-56 glass-card p-4 text-sm leading-relaxed resize-none focus:outline-none transition-all"
           style={{
             background: "rgba(10,10,26,0.7)",
@@ -569,7 +568,7 @@ export default function OnboardingPage() {
             <Sparkles size={18} color="#050510" strokeWidth={2.5} />
           </div>
           <span className="text-lg font-bold tracking-tight neon-text">
-            Nexus
+            NODENEXUS
           </span>
         </Link>
         <span

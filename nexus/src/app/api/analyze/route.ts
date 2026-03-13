@@ -8,7 +8,7 @@ export async function POST(req: Request) {
 
     if (!syllabusText || !targetJobTitle) {
       return NextResponse.json(
-        { error: "Syllabus and Job Title are required" },
+        { error: "Syllabus and Skills are required" },
         { status: 400 }
       );
     }
@@ -25,17 +25,17 @@ export async function POST(req: Request) {
 
     const prompt = `
 You are an expert technical recruiter, senior software engineer, and career coach.
-Your task is to analyze the user's current academic syllabus and assess their readiness for a specific job target. The user has also provided their "vibe check" constraints.
+Your task is to analyze the user's current academic syllabus and current skills, and assess their readiness for their field of interest. The user has also provided their "vibe check" constraints.
 
 --- INPUT ---
 **Syllabus/Current Skills:**
 ${syllabusText}
 
-**Target Job Title:**
+**Current Skills:**
 ${targetJobTitle}
 
-**Target Job Description:**
-${targetJobDescription || "(Not provided, assume standard responsibilities for the job title)"}
+**Field of Interest:**
+${targetJobDescription || "(Not provided)"}
 
 **User Profile/Constraints:**
 Weekly Hours Available: ${vibeCheck?.weeklyHours || 5}
@@ -43,7 +43,7 @@ Learning Style: ${vibeCheck?.learningStyle || "MIXED"}
 Biggest Bottleneck: ${vibeCheck?.biggestBottleneck || "None"}
 
 --- INSTRUCTIONS ---
-Compare the user's syllabus/skills against the requirements for the target role.
+Compare the user's syllabus/skills against the requirements for their field of interest.
 You must output ONLY raw JSON that perfectly matches the following TypeScript interface (and nothing else). No markdown formatting blocks around the JSON output, JUST raw JSON.
 
 export interface SkillGap {

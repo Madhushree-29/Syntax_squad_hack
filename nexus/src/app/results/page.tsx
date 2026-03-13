@@ -211,7 +211,7 @@ export default function ResultsPage() {
           >
             <Sparkles size={18} color="#050510" strokeWidth={2.5} />
           </div>
-          <span className="text-lg font-bold neon-text">Nexus</span>
+          <span className="text-lg font-bold neon-text">NODENEXUS</span>
         </Link>
         <Link href="/dashboard" className="btn-secondary" style={{ padding: "10px 24px", fontSize: "0.85rem" }}>
           Go to Dashboard
