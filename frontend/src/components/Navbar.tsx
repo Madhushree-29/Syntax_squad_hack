@@ -22,7 +22,7 @@ export default function Navbar() {
             <BrainCircuit className="w-6 h-6 text-brand-500" />
           </div>
           <span className="text-xl font-bold tracking-tight text-white">
-            NODE<span className="text-brand-500">NEXUS</span>
+            NODE<span className="text-brand-500">NEXUS (Set 3)</span>
           </span>
         </Link>
         

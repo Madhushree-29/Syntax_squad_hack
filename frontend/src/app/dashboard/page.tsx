@@ -20,7 +20,7 @@ export default function Dashboard() {
 
     const fetchHistory = async () => {
       try {
-        const res = await fetch(`http://localhost:8000/api/student-history/${userId}`);
+        const res = await fetch(`http://localhost:8002/api/student-history/${userId}`);
         const data = await res.json();
         setRecommendations(data.recommendations);
       } catch (err) {

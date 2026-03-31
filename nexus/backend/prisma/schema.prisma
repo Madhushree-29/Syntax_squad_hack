@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+  engineType = "binary"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String           @id @default(auto()) @map("_id") @db.ObjectId
+  email           String           @unique
+  name            String
+  academicBg      String?
+  skills          UserSkill[]
+  interests       UserInterest[]
+  recommendations Recommendation[]
+  chats           ChatSession[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model Skill {
+  id    String      @id @default(auto()) @map("_id") @db.ObjectId
+  name  String      @unique
+  users UserSkill[]
+}
+
+model UserSkill {
+  id      String @id @default(auto()) @map("_id") @db.ObjectId
+  userId  String @db.ObjectId
+  skillId String @db.ObjectId
+  user    User   @relation(fields: [userId], references: [id])
+  skill   Skill  @relation(fields: [skillId], references: [id])
+}
+
+model Interest {
+  id    String         @id @default(auto()) @map("_id") @db.ObjectId
+  name  String         @unique
+  users UserInterest[]
+}
+
+model UserInterest {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String   @db.ObjectId
+  interestId String   @db.ObjectId
+  user       User     @relation(fields: [userId], references: [id])
+  interest   Interest @relation(fields: [interestId], references: [id])
+}
+
+model Recommendation {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId
+  user        User     @relation(fields: [userId], references: [id])
+  title       String
+  description String
+  roadmap     String   // Storing structured roadmap steps as JSON string
+  skillGap    String   // Detailed skill gap analysis as JSON string
+  createdAt   DateTime @default(now())
+}
+
+model ChatSession {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String    @db.ObjectId
+  user      User      @relation(fields: [userId], references: [id])
+  messages  Message[]
+  createdAt DateTime  @default(now())
+}
+
+model Message {
+  id            String      @id @default(auto()) @map("_id") @db.ObjectId
+  chatSessionId String      @db.ObjectId
+  chatSession   ChatSession @relation(fields: [chatSessionId], references: [id])
+  role          String      
+  content       String
+  createdAt     DateTime    @default(now())
+}

@@ -31,7 +31,7 @@ export default function Onboarding() {
       
       const payload = { ...formData, skills: skillsArray, interests: interestsArray };
 
-      const res = await fetch('http://localhost:8000/api/student-profile', {
+      const res = await fetch('http://localhost:8002/api/student-profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -44,7 +44,7 @@ export default function Onboarding() {
       setUser(data.user.name, data.user.email);
       
       // Trigger AI Analysis automatically
-      await fetch('http://localhost:8000/api/career/analyze', {
+      await fetch('http://localhost:8002/api/career/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: data.user.id })

@@ -33,6 +33,11 @@ export interface OnboardingState {
   analysisComplete: boolean;
   analysisResult: AnalysisResult | null;
 
+  // Daily Tracking
+  completedTaskIds: string[];
+  lastActiveDate: string | null;
+  showDailyWarning: boolean;
+
   // Actions
   setStep: (step: number) => void;
   nextStep: () => void;
@@ -44,6 +49,8 @@ export interface OnboardingState {
   setVibeCheck: (answers: Partial<VibeCheckAnswers>) => void;
   setAnalyzing: (val: boolean) => void;
   setAnalysisResult: (result: AnalysisResult) => void;
+  toggleTaskCompletion: (taskId: string) => void;
+  checkDailyProgress: () => void;
   reset: () => void;
 }
 
@@ -83,6 +90,7 @@ export interface WeekendPlan {
 }
 
 export interface AnalysisResult {
+  suggestedRole: string;
   coveragePercent: number;
   hireabilityScore: number;
   coveredSkills: CoveredSkill[];
@@ -111,6 +119,10 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
   analysisComplete: false,
   analysisResult: null,
 
+  completedTaskIds: [],
+  lastActiveDate: null,
+  showDailyWarning: false,
+
   setStep: (step) => set({ currentStep: step }),
   nextStep: () => set((s) => ({ currentStep: Math.min(s.currentStep + 1, s.totalSteps) })),
   prevStep: () => set((s) => ({ currentStep: Math.max(s.currentStep - 1, 1) })),
@@ -123,6 +135,33 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
   setAnalyzing: (val) => set({ isAnalyzing: val }),
   setAnalysisResult: (result) =>
     set({ analysisResult: result, analysisComplete: true, isAnalyzing: false }),
+
+  toggleTaskCompletion: (taskId) => {
+    set((state) => {
+      const isCompleted = state.completedTaskIds.includes(taskId);
+      const newCompleted = isCompleted
+        ? state.completedTaskIds.filter((id) => id !== taskId)
+        : [...state.completedTaskIds, taskId];
+      
+      const today = new Date().toISOString().split("T")[0];
+      return {
+        completedTaskIds: newCompleted,
+        lastActiveDate: today,
+        showDailyWarning: false,
+      };
+    });
+  },
+
+  checkDailyProgress: () => {
+    set((state) => {
+      const today = new Date().toISOString().split("T")[0];
+      if (state.lastActiveDate && state.lastActiveDate !== today) {
+        return { showDailyWarning: true };
+      }
+      return { showDailyWarning: false };
+    });
+  },
+
   reset: () =>
     set({
       currentStep: 1,
@@ -134,5 +173,8 @@ export const useOnboardingStore = create<OnboardingState>((set) => ({
       isAnalyzing: false,
       analysisComplete: false,
       analysisResult: null,
+      completedTaskIds: [],
+      lastActiveDate: null,
+      showDailyWarning: false,
     }),
 }));

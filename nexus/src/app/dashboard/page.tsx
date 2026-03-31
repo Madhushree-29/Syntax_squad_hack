@@ -136,11 +136,12 @@ function MiniProgress({ value, label }: { value: number; label: string }) {
 /* ── Main Dashboard ── */
 export default function DashboardPage() {
   const router = useRouter();
-  const { analysisResult, targetJobTitle, userStatus, vibeCheck } = useOnboardingStore();
+  const { analysisResult, targetJobTitle, userStatus, vibeCheck, completedTaskIds, toggleTaskCompletion, showDailyWarning, checkDailyProgress } = useOnboardingStore();
   const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     setIsMounted(true);
+    checkDailyProgress();
 
     // Fallback Mock Data so the Dashboard always renders its beautiful UI
     // even if the user hasn't set the GEMINI_API_KEY yet.
@@ -150,6 +151,7 @@ export default function DashboardPage() {
         targetJobTitle: "Junior Software Engineer",
         vibeCheck: { weeklyHours: 15, learningStyle: "MIXED", biggestBottleneck: "No direction", budgetConstraint: true },
         analysisResult: {
+          suggestedRole: "Junior Full Stack Engineer",
           coveragePercent: 75,
           hireabilityScore: 68,
           coveredSkills: [
@@ -272,6 +274,21 @@ export default function DashboardPage() {
           </div>
         </header>
 
+        {/* Daily Warning Banner */}
+        {showDailyWarning && (
+          <motion.div 
+            initial={{ opacity: 0, y: -20 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            className="mx-8 mt-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-xl flex items-center gap-3 shadow-sm"
+          >
+            <Bell className="text-red-500 animate-pulse" size={20} />
+            <div className="flex-1">
+              <span className="font-bold block text-sm">Action Required: Keep your streak alive!</span>
+              <span className="text-xs">You haven't completed a task today. Stay on track to reach your goals.</span>
+            </div>
+          </motion.div>
+        )}
+
         {/* Dashboard Grid Container */}
         <div className="p-8 max-w-[1400px] mx-auto min-h-[calc(100vh-5rem)] pb-24">
 
@@ -367,7 +384,14 @@ export default function DashboardPage() {
 
             {/* R2C4: Career Ladder (Target Role) */}
             <BentoCard title="Career Target" icon={TrendingUp} delay={5} className="md:col-start-4">
-              <div className="relative pl-4 border-l-2 border-gray-100 flex flex-col gap-6 py-2">
+              <div className="relative pl-4 border-l-2 border-gray-100 flex flex-col gap-4 py-2">
+                <div className="relative">
+                  <div className="absolute -left-[21px] top-1 w-3 h-3 rounded-full border-2 bg-purple-500 border-purple-500"></div>
+                  <h4 className="text-sm font-bold text-purple-600">
+                    {analysisResult.suggestedRole || "AI Suggested Role"}
+                  </h4>
+                  <p className="text-xs text-gray-400 font-medium mt-0.5">Recommended Path</p>
+                </div>
                 <div className="relative">
                   <div className="absolute -left-[21px] top-1 w-3 h-3 rounded-full border-2 bg-[#FDB813] border-[#FDB813]"></div>
                   <h4 className="text-sm font-bold text-[#FDB813]">
@@ -460,18 +484,34 @@ export default function DashboardPage() {
             </BentoCard>
 
             {/* R3C4: Checklist */}
-            <BentoCard title="Checklist Tasks" icon={CheckSquare} delay={8}>
-              <div className="space-y-3 max-h-48 overflow-y-auto pr-1">
-                {upcomingTasks.length > 0 ? upcomingTasks.map((task, i) => (
-                  <label key={i} className="flex items-start gap-3 cursor-pointer group">
-                    <div className={`mt-0.5 w-5 h-5 rounded flex items-center justify-center border transition-colors bg-white border-gray-300 text-transparent group-hover:border-[#FDB813] shrink-0`}>
-                      <CheckSquare size={14} className="opacity-0" />
+            <BentoCard title="Checklist Map" icon={Map} delay={8}>
+              <div className="relative pl-6 space-y-4 max-h-48 overflow-y-auto pr-1 before:absolute before:inset-0 before:left-[11px] before:w-[2px] before:bg-gray-100 before:z-0">
+                {upcomingTasks.length > 0 ? upcomingTasks.map((task, i) => {
+                  const taskId = String(task.task);
+                  const isDone = completedTaskIds.includes(taskId);
+                  return (
+                  <label key={i} className={`relative z-10 flex items-start gap-3 cursor-pointer group hover:bg-gray-50 p-1.5 rounded-lg transition-colors ${isDone ? 'opacity-50' : ''}`}>
+                    {/* Timeline Node */}
+                    <div className="absolute -left-[25px] top-2 w-4 h-4 rounded-full bg-white border-2 flex items-center justify-center transition-colors shadow-sm" style={{ borderColor: isDone ? '#FDB813' : '#E5E7EB' }}>
+                      {isDone && <div className="w-2 h-2 rounded-full bg-[#FDB813]"></div>}
                     </div>
-                    <span className="text-sm font-medium text-[#333333] line-clamp-2" title={task.task}>
+
+                    <input 
+                      type="checkbox" 
+                      className="hidden" 
+                      checked={isDone}
+                      onChange={() => toggleTaskCompletion(taskId)}
+                    />
+                    <div className={`mt-0.5 w-5 h-5 rounded flex items-center justify-center border transition-colors shrink-0
+                      ${isDone ? 'bg-[#FDB813] border-[#FDB813] text-white' : 'bg-white border-gray-300 text-transparent group-hover:border-[#FDB813]'}
+                    `}>
+                      <CheckSquare size={14} className={isDone ? 'opacity-100' : 'opacity-0'} />
+                    </div>
+                    <span className={`text-sm font-medium line-clamp-2 ${isDone ? 'text-gray-400 line-through' : 'text-[#333333]'}`} title={task.task}>
                       {task.task}
                     </span>
                   </label>
-                )) : (
+                )}) : (
                   <p className="text-sm text-gray-500">No scheduled tasks yet.</p>
                 )}
               </div>
